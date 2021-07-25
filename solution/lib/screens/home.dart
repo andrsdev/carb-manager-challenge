@@ -28,6 +28,7 @@ class _HomeState extends State<Home> {
     'TSLA'
   ];
 
+  List<Trade> _trades = [];
   bool isLoading = true;
 
   _loadHtmlFromAssets() async {
@@ -50,33 +51,29 @@ class _HomeState extends State<Home> {
     _loadHtmlFromAssets();
   }
 
-  void _sendUpdateToWebview(Trade trade) async {
+  Future _sendUpdateToWebview(List<Trade> trades) async {
     WebViewController controller = await _controller.future;
-    final date = DateTime.fromMillisecondsSinceEpoch(trade.timestamp);
-    final formattedDate = DateFormat('MM/dd/yyyy - hh:mm a').format(date);
+    String script = "";
 
-    controller.evaluateJavascript('''
-      nativeMessageHandler({
-        action: 'APP_UPDATE_DATA',
-        data: [
-          {
-            lastPrice: ${trade.price},
-            name: "${trade.symbol}",
-            timestamp: "$formattedDate",
-            volume: ${trade.volume},
-          }
-        ]
-      })
-      ''');
-  }
+    for (var trade in trades) {
+      final date = DateTime.fromMillisecondsSinceEpoch(trade.timestamp);
+      final formattedDate = DateFormat('MM/dd/yyyy - hh:mm a').format(date);
+      script += '''
+        nativeMessageHandler({
+          action: 'APP_UPDATE_DATA',
+          data: [
+            {
+              lastPrice: ${trade.price},
+              name: "${trade.symbol}",
+              timestamp: "$formattedDate",
+              volume: ${trade.volume},
+            }
+          ]
+        });
+      ''';
+    }
 
-  JavascriptChannel _appMessageHandler(BuildContext context) {
-    return JavascriptChannel(
-      name: 'appMessageHandler',
-      onMessageReceived: (JavascriptMessage message) {
-        //TODO: handle resetState(): message.action APP_STATE_RESET;
-      },
-    );
+    controller.evaluateJavascript(script);
   }
 
   _initWebsocketChannel() {
@@ -88,10 +85,12 @@ class _HomeState extends State<Home> {
       dynamic message = jsonDecode(event);
 
       if (message['type'] == 'trade') {
-        for (var item in message['data']) {
-          Trade trade = Trade.fromMap(item);
-          _sendUpdateToWebview(trade);
-        }
+        setState(() {
+          for (var item in message['data']) {
+            Trade trade = Trade.fromMap(item);
+            _trades.add(trade);
+          }
+        });
       }
     });
   }
@@ -104,6 +103,21 @@ class _HomeState extends State<Home> {
 
       _initWebsocketChannel();
     }
+  }
+
+  void _onRefersh() async {
+    WebViewController controller = await _controller.future;
+    controller.evaluateJavascript('''
+      nativeMessageHandler({
+        action: 'APP_RESET',
+      })
+      ''');
+
+    await _sendUpdateToWebview(_trades);
+
+    setState(() {
+      _trades.clear();
+    });
   }
 
   @override
@@ -132,10 +146,11 @@ class _HomeState extends State<Home> {
         onWebViewCreated: _onWebViewCreated,
         onProgress: _onProgress,
         javascriptMode: JavascriptMode.unrestricted,
-        javascriptChannels: <JavascriptChannel>{
-          _appMessageHandler(context),
-        },
       ),
+      floatingActionButton: FloatingActionButton.extended(
+          onPressed: _onRefersh,
+          label: Text('New: ${_trades.length}'),
+          icon: Icon(Icons.refresh)),
     );
   }
 }
