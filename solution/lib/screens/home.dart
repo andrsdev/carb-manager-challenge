@@ -19,8 +19,14 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   final _finhubService = FinhubService();
-  final Completer<WebViewController> _controller =
-      Completer<WebViewController>();
+  final _controller = Completer<WebViewController>();
+  final _symbols = [
+    'BINANCE:BTCUSDT',
+    'BINANCE:ETHUSDT',
+    'AAPL',
+    'AMZN',
+    'TSLA'
+  ];
 
   bool isLoading = true;
 
@@ -74,7 +80,9 @@ class _HomeState extends State<Home> {
   }
 
   _initWebsocketChannel() {
-    _finhubService.subscribe('BINANCE:BTCUSDT');
+    for (var item in _symbols) {
+      _finhubService.subscribe(item);
+    }
 
     _finhubService.stream.listen((event) {
       dynamic message = jsonDecode(event);
@@ -100,7 +108,9 @@ class _HomeState extends State<Home> {
 
   @override
   void dispose() {
-    _finhubService.unsubscribe('BINANCE:BTCUSDT');
+    for (var item in _symbols) {
+      _finhubService.unsubscribe(item);
+    }
     _finhubService.close();
     super.dispose();
   }
