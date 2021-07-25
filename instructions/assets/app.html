@@ -1,0 +1,105 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>CM Assignment</title>
+    <meta name="viewport" content="width=device-width" />
+    <style>
+      html {
+        font-family: "proxima-nova", Helvetica, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        text-align: center;
+        color: #2c3e50;
+        margin-top: 60px;
+      }
+      #cm-container {
+        max-width: 960px;
+        margin: auto;
+      }
+      #cm-list {
+        background-color: #fff;
+        border: 0.0625rem solid #ebebeb;
+        border-radius: 1.25rem;
+        list-style-type: none;
+        overflow: hidden;
+        padding: 0.75rem 5vw;
+        font-size: 14px;
+      }
+      #cm-list li {
+        padding: 0.75rem;
+        display: flex;
+        flex-wrap: wrap;
+        align-content: space-evenly;
+      }
+      #cm-list li:not(:last-child) {
+        border-bottom: 0.0625rem solid #ebebeb;
+      }
+      #cm-list span {
+        text-transform: capitalize;
+        padding: 0.3rem;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cm-container">
+      <h1 id="cm-title">Update list</h1>
+      <ul id="cm-list"></ul>
+    </div>
+    <script type="text/javascript">
+      const listContainer = document.getElementById('cm-list');
+
+      const messages = {
+        noData: 'no data',
+        empty: 'empty',
+      };
+
+      function generateItem(
+        name = messages.empty,
+        timestamp = messages.noData,
+        lastPrice = messages.noData,
+        volume = messages.noData
+      ) {
+        const values = [name, timestamp, `$${lastPrice}`, volume];
+        const listContent = `<li>${values
+          .map((value) => `<span>${value}</span>`)
+          .join('')}</li>`;
+
+        const template = document.createElement('template');
+        template.innerHTML = listContent;
+        return template.content;
+      }
+
+      function nativeMessageHandler(event) {
+        switch (event.action) {
+          case 'APP_RESET':
+            listContainer.innerHTML = '';
+            break;
+          case 'APP_UPDATE_DATA':
+            const stockUpdates = event.data;
+            if (!Array.isArray(stockUpdates)) return;
+
+            stockUpdates.forEach((updateData) => {
+              listContainer.prepend(
+                generateItem(
+                  updateData.name,
+                  updateData.timestamp,
+                  updateData.lastPrice,
+                  updateData.volume
+                )
+              );
+            });
+            break;
+        }
+      }
+
+      function resetState() {
+        if (typeof window['appMessageHandler'] !== 'undefined') {
+          appMessageHandler.postMessage({
+            action: 'APP_STATE_RESET',
+          });
+        }
+      }
+    </script>
+  </body>
+</html>
