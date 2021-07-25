@@ -3,8 +3,11 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:solution/components/loader.dart';
 import 'package:solution/config/strings.dart';
+import 'package:solution/models/trade.dart';
+import 'package:solution/services/finhub.service.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 class Home extends StatefulWidget {
@@ -15,6 +18,7 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  final _finhubService = FinhubService();
   final Completer<WebViewController> _controller =
       Completer<WebViewController>();
 
@@ -40,17 +44,20 @@ class _HomeState extends State<Home> {
     _loadHtmlFromAssets();
   }
 
-  void _sendUpdateToWebview() async {
+  void _sendUpdateToWebview(Trade trade) async {
     WebViewController controller = await _controller.future;
+    final date = DateTime.fromMillisecondsSinceEpoch(trade.timestamp);
+    final formattedDate = DateFormat('MM/dd/yyyy - hh:mm a').format(date);
+
     controller.evaluateJavascript('''
       nativeMessageHandler({
         action: 'APP_UPDATE_DATA',
         data: [
           {
-            lastPrice: 100,
-            name: 'Test Name',
-            timestamp: '24/07/2021',
-            volume: 100,
+            lastPrice: ${trade.price},
+            name: "${trade.symbol}",
+            timestamp: "$formattedDate",
+            volume: ${trade.volume},
           }
         ]
       })
@@ -66,14 +73,36 @@ class _HomeState extends State<Home> {
     );
   }
 
+  _initWebsocketChannel() {
+    _finhubService.subscribe('BINANCE:BTCUSDT');
+
+    _finhubService.stream.listen((event) {
+      dynamic message = jsonDecode(event);
+
+      if (message['type'] == 'trade') {
+        for (var item in message['data']) {
+          Trade trade = Trade.fromMap(item);
+          _sendUpdateToWebview(trade);
+        }
+      }
+    });
+  }
+
   void _onProgress(int progress) {
     if (progress >= 100) {
       setState(() {
         isLoading = false;
       });
 
-      _sendUpdateToWebview();
+      _initWebsocketChannel();
     }
+  }
+
+  @override
+  void dispose() {
+    _finhubService.unsubscribe('BINANCE:BTCUSDT');
+    _finhubService.close();
+    super.dispose();
   }
 
   @override
