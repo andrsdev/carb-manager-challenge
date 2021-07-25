@@ -47,11 +47,11 @@
       <ul id="cm-list"></ul>
     </div>
     <script type="text/javascript">
-      const listContainer = document.getElementById('cm-list');
+      const listContainer = document.getElementById("cm-list");
 
       const messages = {
-        noData: 'no data',
-        empty: 'empty',
+        noData: "no data",
+        empty: "empty",
       };
 
       function generateItem(
@@ -63,19 +63,19 @@
         const values = [name, timestamp, `$${lastPrice}`, volume];
         const listContent = `<li>${values
           .map((value) => `<span>${value}</span>`)
-          .join('')}</li>`;
+          .join("")}</li>`;
 
-        const template = document.createElement('template');
+        const template = document.createElement("template");
         template.innerHTML = listContent;
         return template.content;
       }
 
       function nativeMessageHandler(event) {
         switch (event.action) {
-          case 'APP_RESET':
-            listContainer.innerHTML = '';
+          case "APP_RESET":
+            listContainer.innerHTML = "";
             break;
-          case 'APP_UPDATE_DATA':
+          case "APP_UPDATE_DATA":
             const stockUpdates = event.data;
             if (!Array.isArray(stockUpdates)) return;
 
@@ -94,9 +94,9 @@
       }
 
       function resetState() {
-        if (typeof window['appMessageHandler'] !== 'undefined') {
+        if (typeof window["appMessageHandler"] !== "undefined") {
           appMessageHandler.postMessage({
-            action: 'APP_STATE_RESET',
+            action: "APP_STATE_RESET",
           });
         }
       }

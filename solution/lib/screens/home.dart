@@ -40,11 +40,39 @@ class _HomeState extends State<Home> {
     _loadHtmlFromAssets();
   }
 
+  void _sendUpdateToWebview() async {
+    WebViewController controller = await _controller.future;
+    controller.evaluateJavascript('''
+      nativeMessageHandler({
+        action: 'APP_UPDATE_DATA',
+        data: [
+          {
+            lastPrice: 100,
+            name: 'Test Name',
+            timestamp: '24/07/2021',
+            volume: 100,
+          }
+        ]
+      })
+      ''');
+  }
+
+  JavascriptChannel _appMessageHandler(BuildContext context) {
+    return JavascriptChannel(
+      name: 'appMessageHandler',
+      onMessageReceived: (JavascriptMessage message) {
+        //TODO: handle resetState(): message.action APP_STATE_RESET;
+      },
+    );
+  }
+
   void _onProgress(int progress) {
     if (progress >= 100) {
       setState(() {
         isLoading = false;
       });
+
+      _sendUpdateToWebview();
     }
   }
 
@@ -64,6 +92,10 @@ class _HomeState extends State<Home> {
       body: WebView(
         onWebViewCreated: _onWebViewCreated,
         onProgress: _onProgress,
+        javascriptMode: JavascriptMode.unrestricted,
+        javascriptChannels: <JavascriptChannel>{
+          _appMessageHandler(context),
+        },
       ),
     );
   }
