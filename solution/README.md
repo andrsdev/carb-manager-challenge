@@ -14,3 +14,7 @@ samples, guidance on mobile development, and a full API reference.
 2. On the `.env` file add your own api key for [Finnhub.io](https://finnhub.io/).
 3. Open an android or ios simulator.
 4. Execute `flutter run`.
+
+## Example
+
+![Screen Shot 2021-07-25 at 5 44 02 PM](https://user-images.githubusercontent.com/34043452/126918071-7114cb1f-a17f-490b-be27-a2e8e8a4e7f9.png)
