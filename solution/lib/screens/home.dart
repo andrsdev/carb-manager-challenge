@@ -31,7 +31,14 @@ class _HomeState extends State<Home> {
   List<Trade> _trades = [];
   bool isLoading = true;
 
-  _loadHtmlFromAssets() async {
+  /// Completes the webview controller
+  void _onWebViewCreated(WebViewController webViewController) {
+    _controller.complete(webViewController);
+    _loadHtmlFromAssets();
+  }
+
+  /// Loads the webview url from the assets html file.
+  void _loadHtmlFromAssets() async {
     final futures = await Future.wait([
       rootBundle.loadString('assets/app.html'),
       _controller.future,
@@ -46,11 +53,8 @@ class _HomeState extends State<Home> {
     controller.loadUrl(url.toString());
   }
 
-  void _onWebViewCreated(WebViewController webViewController) {
-    _controller.complete(webViewController);
-    _loadHtmlFromAssets();
-  }
-
+  /// Constructs and executes the script to update the webview with the list
+  /// of [trades].
   Future _sendUpdateToWebview(List<Trade> trades) async {
     WebViewController controller = await _controller.future;
     String script = "";
@@ -76,7 +80,9 @@ class _HomeState extends State<Home> {
     controller.evaluateJavascript(script);
   }
 
-  _initWebsocketChannel() {
+  /// Subscribes the websocket to multiple symbols, listen to events and
+  /// stores trades messages in memory.
+  void _initWebsocketSubscriptions() {
     for (var item in _symbols) {
       _finhubService.subscribe(item);
     }
@@ -95,16 +101,19 @@ class _HomeState extends State<Home> {
     });
   }
 
+  /// Initializes the websocket subscriptions when the webview completes loading.
   void _onProgress(int progress) {
     if (progress >= 100) {
       setState(() {
         isLoading = false;
       });
 
-      _initWebsocketChannel();
+      _initWebsocketSubscriptions();
     }
   }
 
+  /// Cleans the previous data from the webview, calls the update of
+  /// new data and clears the existing trade items saved in memory.
   void _onRefersh() async {
     WebViewController controller = await _controller.future;
     controller.evaluateJavascript('''
@@ -122,6 +131,7 @@ class _HomeState extends State<Home> {
 
   @override
   void dispose() {
+    /// Cleaning websocket subscriptions and closing it.
     for (var item in _symbols) {
       _finhubService.unsubscribe(item);
     }
@@ -148,9 +158,12 @@ class _HomeState extends State<Home> {
         javascriptMode: JavascriptMode.unrestricted,
       ),
       floatingActionButton: FloatingActionButton.extended(
-          onPressed: _onRefersh,
-          label: Text('New: ${_trades.length}'),
-          icon: Icon(Icons.refresh)),
+        onPressed: _onRefersh,
+        label: Text('New: ${_trades.length}'),
+        icon: Icon(
+          Icons.refresh,
+        ),
+      ),
     );
   }
 }
